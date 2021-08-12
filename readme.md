@@ -10,6 +10,8 @@ packer --version
 
 ## Building an Image
 
+### Creating dir and pkr file
+
 ```bash
 mkdir packer_man
 cd packer_man/
