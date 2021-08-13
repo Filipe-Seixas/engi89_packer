@@ -1,5 +1,7 @@
 # AWS Packer Task
 
+- Packer is a tool that allows us to create AMIs automatically from a JSON or hcl file.
+
 ## Installing Packer
 ```bash
 curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
@@ -21,34 +23,40 @@ sudo nano aws-ubuntu.pkr.hcl
 
 ### aws-ubuntu.pkr.hcl
 
+- This creates a brand new AMI from a default ubuntu AMI
+
 ```bash
-{
-  "variables": {
-    "instance_size": "t2.micro",
-    "ami_name": "eng89_filipe_ami_packer_app",
-    "base_ami": "ami-046036047eac23dc9",
-    "ssh_username": "ubuntu",
-    "vpc_id": "vpc-09cd84dde23d9f6a5",
-    "subnet_id": "subnet-04320aadc8fa3fac1"
-  },
-  "builders": [
-  {
-    "type": "amazon-ebs",
-    "region": "eu-west-1",
-    "source_ami": "{{user `base_ami`}}",
-    "instance_type": "{{user `instance_size`}}",
-    "ssh_username": "{{user `ssh_username`}}",
-    "ami_name": "{{user `ami_name`}}",
-    "ssh_pty" : "true",
-    "vpc_id": "{{user `vpc_id`}}",
-    "subnet_id": "{{user `subnet_id`}}",
-    "tags": {
-    "Name": "eng89_filipe_ami_packer_app",
-    "BuiltBy": "Packer"
+packer {
+  required_plugins {
+    amazon = {
+      version = ">= 0.0.2"
+      source  = "github.com/hashicorp/amazon"
     }
   }
-]
+}
 
+source "amazon-ebs" "ubuntu" {
+  ami_name             = "eng89-filipe-packer"
+  instance_type        = "t2.micro"
+  region               = "eu-west-1"
+  source_ami_filter {
+    filters = {
+      name                = "ubuntu/images/*ubuntu-xenial-16.04-amd64-server-*"
+      root-device-type    = "ebs"
+      virtualization-type = "hvm"
+    }
+    most_recent = true
+    owners      = ["099720109477"]
+  }
+  ssh_username = "ubuntu"
+}
+
+build {
+  name = "eng89-filipe-packer"
+  sources = [
+    "source.amazon-ebs.ubuntu"
+  ]
+}
 ```
 
 - Create AWS access and secret keys env variables:
@@ -57,4 +65,12 @@ sudo nano .bashrc
   export AWS_ACCESS_KEY_ID=YOUR_ACCESS_KEY
   export AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY
 source .bashrc
+```
+
+- Run commands to validate and build the AMI
+```bash
+packer init
+packer fmt .
+packer validate .
+packer build aws-ubuntu.pkr.hcl
 ```
